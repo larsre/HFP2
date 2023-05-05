@@ -1,0 +1,11 @@
+Package: HFP
+Title: Functions for Distance analysis of tetraonid densities and abundance
+Version: 1.0.0
+Authors@R: c(person("Erlend", "Nilsen", email = "erlend.nilsen@nina.no", role = c("aut", "cre")), person("Lars", "Rød-Eriksen", email="lars.rod-eriksen@nina.no", role="aut"))
+Description: A collection of functions to help in Distance analysis of tetraonid densities. The package is developed by the Norwegian Institute for Nature Research, and intended for internal use in relation to the yearly national tetraonid inventory.
+Depends:
+    R (>= 3.2.3)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.0
