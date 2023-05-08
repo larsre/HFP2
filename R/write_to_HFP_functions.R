@@ -24,29 +24,29 @@ conn <- dbConnect(odbc::odbc(),
 
 # Loading test data -------------------------------------------------------
 
-# Bogn og gilten data
-test_dat_1 <- read_delim("Data/bogn_og_gilten_skogsfugl_2023_WGS84.csv", locale = locale(encoding = "latin1"))
+## Bogn og gilten data
+#test_dat_1 <- read_delim("Data/bogn_og_gilten_skogsfugl_2023_WGS84.csv", locale = locale(encoding = "latin1"))
 
 # Jølster data Torsbotn
-shape_torsbotn <- st_read("Data/Torsbotn") # Load shapefile
-test_dat_2 <- tibble(
-  Region = "NINA", Områdenavn = "Jølster", Kommune = "Jølster", Kommunenr = "", Rapporteringsnivå = "Testområde Jølster", # Jølster data 1
-  Linjenr = shape_torsbotn$id, Linjenavn = shape_torsbotn$navn, WKT = st_as_text(shape_torsbotn$geometry)
-)
-test_dat_2
-# Jølster data Bjørset
-shape_bjorset <- st_read("Data/Bjørset") # Load shapefile
-test_dat_3 <- tibble(
-  Region = "NINA", Områdenavn = "Jølster", Kommune = "Jølster", Kommunenr = "", Rapporteringsnivå = "Testområde Jølster", # Jølster data 1
-  Linjenr = shape_bjorset$id, Linjenavn = shape_bjorset$Navn, WKT = st_as_text(shape_bjorset$geometry)
-)
-test_dat_3
+#shape_torsbotn <- st_read("Data/Torsbotn") # Load shapefile
+#test_dat_2 <- tibble(
+  #Region = "NINA", Områdenavn = "Jølster", Kommune = "Jølster", Kommunenr = "", Rapporteringsnivå = "Testområde Jølster", # Jølster data 1
+  #Linjenr = shape_torsbotn$id, Linjenavn = shape_torsbotn$navn, WKT = st_as_text(shape_torsbotn$geometry)
+#)
+#test_dat_2
+## Jølster data Bjørset
+#shape_bjorset <- st_read("Data/Bjørset") # Load shapefile
+#test_dat_3 <- tibble(
+  #Region = "NINA", Områdenavn = "Jølster", Kommune = "Jølster", Kommunenr = "", Rapporteringsnivå = "Testområde Jølster", # Jølster data 1
+ # Linjenr = shape_bjorset$id, Linjenavn = shape_bjorset$Navn, WKT = st_as_text(shape_bjorset$geometry)
+#)
+#test_dat_3
 
 # Bytte transekt i data Torsbotn for å sjekke update-funksjon
 
-test_dat_4 <- test_dat_2
-test_dat_4$WKT[1] <- test_dat_3$WKT[1]
-data <- test_dat_1
+#test_dat_4 <- test_dat_2
+#test_dat_4$WKT[1] <- test_dat_3$WKT[1]
+#data <- test_dat_1
 
 
 # Function for  appending data to HFP -------------------------------------
