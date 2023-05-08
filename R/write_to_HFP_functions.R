@@ -5,9 +5,11 @@ library(tidyverse)
 library(sf)
 library(readxl)
 
+
+## For å koble til SQL-serveren til HFP må det installerast ein oppdatert ODBC driver for Windows; "ODBC Driver 18 for SQL Server". Ta kontakt med IT for å laste ned
 conn <- dbConnect(odbc::odbc(),
   .connection_string = "
-                 Driver=ODBC Driver 18 for SQL Server; ## Denne driveren er en oppdatert ODBC driver for Windows, må kontakte IT for å laste ned
+                 Driver=ODBC Driver 18 for SQL Server;
                  Server=ninsql07;
                  Database=Honsefugl_dev;
                  Trusted_Connection=yes;
@@ -57,7 +59,7 @@ append_to_HFP_func <- function(data, RegionID) {
   ## Check if region exists, if not append with new ID
   Rappnivaa <- dbGetQuery(conn, "select * from Rapporteringsnivaa_temp") # Laster ned Rapporteringsnivå fra HFP
 
-  if (any(Rappnivaa$Navn == unique(data$Rapporteringsnivå)) == FALSE) {  
+  if (any(Rappnivaa$Navn == unique(data$Rapporteringsnivå)) == FALSE) {
     rappnivaa_newID <- max(Rappnivaa$ID) + 1
     print(paste0("Nytt rapporteringsnivå for ", "'", unique(data$Rapporteringsnivå), "'", ": ", rappnivaa_newID))
 
@@ -88,7 +90,7 @@ append_to_HFP_func <- function(data, RegionID) {
 
   ## Sjekker om områdenavn eksisterer i DB, om ikkje leggast det til ny områdeID
   takseringsomrade <- dbReadTable(conn, "Takseringsomrade_temp") # Laster ned "Takseringsomrade" til R-dataframe
-  
+
   for (i in 1:nrow(taksdat)) {
     if (any(takseringsomrade$OmradeNavn == taksdat$Områdenavn[i]) == FALSE) {
       taksdat$omradeID[i] <- max(takseringsomrade$OmradeID) + i
@@ -111,30 +113,30 @@ append_to_HFP_func <- function(data, RegionID) {
   ## Sjekk om linjene ligger der fra før
   linesHFP <- dbReadTable(conn, "Takseringslinje_temp") # Laster ned "Takseringslinje" til R-dataframe
   linedat$Status <- linedat$Linjenavn %in% linesHFP$Linjenavn # Om linjenavn finnes fra før Status = TRUE, om ikkje Status = False
-  
+
   if (any(linedat$Status == FALSE)) {
   newRow_takseringlinje <- linedat %>%  ### Legger til nye takseringslinjer: Status == FALSE
-    filter(Status == FALSE) %>% 
-    mutate(FK_OmradeID = omradeID, 
-           STAsText = WKT, 
-           Linjenavn = Linjenavn, 
-           Prosjekt = "", 
-           Rapporteringsniva = Rapporteringsnivå, 
-           Region = Region, 
+    filter(Status == FALSE) %>%
+    mutate(FK_OmradeID = omradeID,
+           STAsText = WKT,
+           Linjenavn = Linjenavn,
+           Prosjekt = "",
+           Rapporteringsniva = Rapporteringsnivå,
+           Region = Region,
            Aktiv = 1,
            .keep = 'none')
   print(paste0("Nye takseringslinjer lagt til: ",paste(newRow_takseringlinje$Linjenavn, collapse = " ")))
   dbWriteTable(conn, "Takseringslinje_temp", newRow_takseringlinje, append = TRUE)
-  
+
   } else if (any(linedat$Status == TRUE)){
   updateRow_takseringlinje <- linedat %>%  ### Oppdaterer eksisterende takseringslinjer: Status == TRUE
-    filter(Status == TRUE) %>% 
-    mutate(FK_OmradeID = omradeID, 
-           STAsText = WKT, 
-           Linjenavn = Linjenavn, 
-           Prosjekt = "", 
-           Rapporteringsniva = Rapporteringsnivå, 
-           Region = Region, 
+    filter(Status == TRUE) %>%
+    mutate(FK_OmradeID = omradeID,
+           STAsText = WKT,
+           Linjenavn = Linjenavn,
+           Prosjekt = "",
+           Rapporteringsniva = Rapporteringsnivå,
+           Region = Region,
            Aktiv = 0,
            .keep = 'none')
   for (i in 1:nrow(updateRow_takseringlinje)){
@@ -145,16 +147,16 @@ append_to_HFP_func <- function(data, RegionID) {
   print(paste0("Takseringslinjer oppdatert: ",paste(updateRow_takseringlinje$Linjenavn, collapse = " ")))
 
   }
-  
+
   # Lager kart over nye og oppdaterte linjer
   linjekart <- dbGetQuery(conn, paste0("select LinjeID, STAsText from Takseringslinje_temp where Linjenavn in (", paste0(sprintf("'%s'",linedat$Linjenavn), collapse = ", "), ")")) %>%
     st_as_sf(., wkt = "STAsText")
 
   leaflet(linjekart) %>%
     addTiles(group = "OSM") %>%
-    addPolygons() %>% 
+    addPolygons() %>%
     print()
-  
+
   # Konverterar WKT til Geom i HFP for nye linjer
   dbExecute(conn, paste0("update Takseringslinje_temp
           set Geom = geography::STGeomFromText(STAsText, 4326)
