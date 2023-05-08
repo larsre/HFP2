@@ -6,7 +6,8 @@ library(sf)
 library(readxl)
 
 
-## For å koble til SQL-serveren til HFP må det installerast ein oppdatert ODBC driver for Windows; "ODBC Driver 18 for SQL Server". Ta kontakt med IT for å laste ned
+## For å koble til SQL-serveren til HFP må det installerast ein oppdatert ODBC driver for Windows; "ODBC Driver 18 for SQL Server". Ta kontakt med IT for å laste ned.
+## Skriptet under er kopla til utviklingsversjonen av HFP og lager nye midlertidige tabeller (slutter med "_temp") for alle steg i prosessen.
 conn <- dbConnect(odbc::odbc(),
   .connection_string = "
                  Driver=ODBC Driver 18 for SQL Server;
@@ -51,12 +52,12 @@ conn <- dbConnect(odbc::odbc(),
 #data <- test_dat_1
 
 
-# Function for  appending data to HFP -------------------------------------
+# Funksjon for å legge til / oppdatere nye linjer i HFP -------------------------------------
 
 
 
 append_to_HFP_func <- function(data, RegionID) {
-  ## Check if region exists, if not append with new ID
+  ## Check if region exists i DB, if not append with new ID
   Rappnivaa <- dbGetQuery(conn, "select * from Rapporteringsnivaa_temp") # Laster ned Rapporteringsnivå fra HFP
 
   if (any(Rappnivaa$Navn == unique(data$Rapporteringsnivå)) == FALSE) {
@@ -64,7 +65,6 @@ append_to_HFP_func <- function(data, RegionID) {
     print(paste0("Nytt rapporteringsnivå for ", "'", unique(data$Rapporteringsnivå), "'", ": ", rappnivaa_newID))
 
     newRow_Rappnivaa <- data.frame("Navn" = unique(data$Rapporteringsnivå), "FK_RegionID" = rappnivaa_newID)
-    newRow_Rappnivaa
     dbWriteTable(conn, "Rapporteringsnivaa_temp", newRow_Rappnivaa, append = TRUE)
     print(dbGetQuery(conn, "select top(5) * from Rapporteringsnivaa_temp order by ID desc"))
   } else {
@@ -85,7 +85,6 @@ append_to_HFP_func <- function(data, RegionID) {
     mutate(Kommunenavn = Kommune, .keep = "unused") %>%
     left_join(., fylkekomnr, by = "Kommunenavn") %>%
     mutate(omradeID = 0, Rappnivaa = rappnivaa_newID)
-  taksdat
 
 
   ## Sjekker om områdenavn eksisterer i DB, om ikkje leggast det til ny områdeID
@@ -108,8 +107,9 @@ append_to_HFP_func <- function(data, RegionID) {
   }
 
 
-  # 3. Legg inn nye takseringslinjer i tabell "Takseringslinje" -------------
+  # 3. Legg inn nye / oppdatere takseringslinjer i tabell "Takseringslinje" -------------
   linedat <- left_join(data, taksdat, by = join_by(Region, Områdenavn, Kommunenr, Rapporteringsnivå)) ## nytt datasett med linjer og områdeID henta frå databasen
+
   ## Sjekk om linjene ligger der fra før
   linesHFP <- dbReadTable(conn, "Takseringslinje_temp") # Laster ned "Takseringslinje" til R-dataframe
   linedat$Status <- linedat$Linjenavn %in% linesHFP$Linjenavn # Om linjenavn finnes fra før Status = TRUE, om ikkje Status = False
@@ -139,7 +139,8 @@ append_to_HFP_func <- function(data, RegionID) {
            Region = Region,
            Aktiv = 0,
            .keep = 'none')
-  for (i in 1:nrow(updateRow_takseringlinje)){
+
+  for (i in 1:nrow(updateRow_takseringlinje)){ ## SQL-kode for å oppdatere linjer som allerie ligg inne i HFP
     dbExecute(conn,
               paste0("UPDATE Takseringslinje_temp SET STAsText = ", "'", updateRow_takseringlinje$STAsText[i], "' ",
                      "WHERE Linjenavn =", "'", paste(updateRow_takseringlinje$Linjenavn[i]), "'"))
@@ -148,7 +149,7 @@ append_to_HFP_func <- function(data, RegionID) {
 
   }
 
-  # Lager kart over nye og oppdaterte linjer
+  # Lagar kart over nye og oppdaterte linjer
   linjekart <- dbGetQuery(conn, paste0("select LinjeID, STAsText from Takseringslinje_temp where Linjenavn in (", paste0(sprintf("'%s'",linedat$Linjenavn), collapse = ", "), ")")) %>%
     st_as_sf(., wkt = "STAsText")
 
@@ -162,7 +163,7 @@ append_to_HFP_func <- function(data, RegionID) {
           set Geom = geography::STGeomFromText(STAsText, 4326)
           where FK_OmradeID in (", paste0(sprintf("'%s'", unique(linedat$omradeID)), collapse = ", "), ")")) ## Konverterer WKT til Geom
 
-  # 4. Oppdatere GEOM (omriss av område) i tabell "Rapporteringsniva" -------
+  # 4. SQL kode for å oppdatere GEOM (omriss av område) i tabell "Rapporteringsniva" -------
   dbExecute(conn, paste("
 Update Rapporteringsnivaa_temp Set geom =
 (
@@ -183,7 +184,7 @@ append_to_HFP_func(test_dat_4, 3)
 
 
 
-# Reset all data in temp databases -------------------------------------------------------------------
+# Reset alle midlertidige tabellar i HFP -------------------------------------------------------------------
 
 dbGetQuery(conn, "select top(15) * from Rapporteringsnivaa_temp order by ID desc")
 dbExecute(conn, "drop table Rapporteringsnivaa_temp;") # sletter tabell "Rapporteringsnivaa_temp"
