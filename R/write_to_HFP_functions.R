@@ -7,7 +7,7 @@ library(readxl)
 
 conn <- dbConnect(odbc::odbc(),
   .connection_string = "
-                 Driver=ODBC Driver 18 for SQL Server;
+                 Driver=ODBC Driver 18 for SQL Server; ## Denne driveren er en oppdatert ODBC driver for Windows, må kontakte IT for å laste ned
                  Server=ninsql07;
                  Database=Honsefugl_dev;
                  Trusted_Connection=yes;
