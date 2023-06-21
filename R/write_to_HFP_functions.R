@@ -180,7 +180,7 @@ where Rapporteringsnivaa_temp.ID = ", unique(linedat$Rappnivaa)))
     addPolygons()
 }
 
-append_to_HFP_func(test_dat_4, 3)
+#append_to_HFP_func(test_dat_4, 3)
 
 
 
